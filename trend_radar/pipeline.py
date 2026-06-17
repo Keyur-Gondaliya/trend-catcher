@@ -32,7 +32,16 @@ def run_digest():
     store.add([t.id for t in tweets], vectors)  # parity with a real vector DB
 
     trends = detect_trends(tweets, vectors)
+
     prefs = PreferenceStore()
+    # Cold start: seed the preference centroid from configured default interests
+    # so the first digest already leans toward what I care about. Embedded with
+    # the same (now-fitted) embedder, so it shares the trend centroids' space.
+    if prefs.is_cold and config.DEFAULT_INTERESTS:
+        prior = embedder.transform(config.DEFAULT_INTERESTS).mean(axis=0)
+        prefs.seed_prior(prior)
+        prefs.save()  # persist so feedback on this digest builds on the prior
+
     items = build_digest(trends, prefs)
 
     # Persist item_id -> centroid so feedback can update the right vector.
@@ -44,7 +53,7 @@ def run_digest():
     with open(config.DIGEST_PATH, "w") as f:
         json.dump({"centroids": id_to_centroid}, f)
 
-    text = render_text(items, cold=prefs.is_cold)
+    text = render_text(items, cold=prefs.is_cold, using_prior=prefs.prior)
     deliver(text)
     return items
 

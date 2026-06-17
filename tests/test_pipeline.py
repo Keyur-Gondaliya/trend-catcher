@@ -58,3 +58,30 @@ def test_feedback_moves_ranking(tmp_path, monkeypatch):
     assert moved.relevance > 0.5
     # The thing we upvoted should now outrank where it started.
     assert warm[0].cluster_id == target.cluster_id or moved.score > target.score
+
+
+def test_default_interest_prior_personalizes_cold_start(tmp_path):
+    tweets = _load_sample(tmp_path)
+    embedder = get_embedder()
+    vectors = embedder.fit_transform([t.text for t in tweets])
+    trends = detect_trends(tweets, vectors)
+
+    prefs = PreferenceStore(path=str(tmp_path / "preferences.json"))
+    prior = embedder.transform(
+        ["AI code review agents", "context engineering for LLMs"]
+    ).mean(axis=0)
+    prefs.seed_prior(prior)
+
+    # A prior is a starting point, not earned taste: still "cold", but flagged.
+    assert prefs.is_cold
+    assert prefs.prior
+
+    items = build_digest(trends, prefs)
+    # The prior must actually move relevance off the neutral 0.5 baseline.
+    assert any(it.relevance != 0.5 for it in items)
+    assert items[0].relevance > 0.5
+
+    # Real feedback clears the prior flag and is no longer "cold".
+    prefs.update(np.asarray(prior, dtype=np.float32), relevant=True)
+    assert not prefs.prior
+    assert not prefs.is_cold

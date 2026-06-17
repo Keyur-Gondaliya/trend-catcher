@@ -124,9 +124,11 @@ step (they map to the optional extras in `pyproject.toml`).
 
 ## What's broken / what I'd do with more time (honest)
 
-- **Cold start.** With no feedback, personalization can't work — the first one or
-  two digests are ranked purely by trend strength. It's *earned* over a few
-  cycles, not instant. Mitigation would be a quick onboarding ("pick 5 topics").
+- **Cold start.** Mitigated: `DEFAULT_INTERESTS` in `config.py` seeds the
+  preference centroid before any feedback, so the *first* digest already leans
+  toward what I declared I care about (AI agents, LLM apps, context engineering,
+  …). Feedback then folds in and overrides the prior over a few cycles. Set it
+  empty to fall back to pure trend-strength ranking.
 - **TF-IDF clusters by words, not meaning.** The offline default groups "stop
   prompt hacking" and "context engineering" as near-but-separate clusters that a
   real embedding model would merge. Switching `EMBEDDING_BACKEND` fixes this;

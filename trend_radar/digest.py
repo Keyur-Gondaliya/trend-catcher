@@ -94,9 +94,13 @@ def build_digest(trends: list[Trend], prefs: PreferenceStore) -> list[DigestItem
     return items
 
 
-def render_text(items: list[DigestItem], cold: bool) -> str:
+def render_text(items: list[DigestItem], cold: bool,
+                using_prior: bool = False) -> str:
     lines = ["📡 *Trend Radar* — your twice-weekly tech digest", ""]
-    if cold:
+    if cold and using_prior:
+        lines.append("_(starting from your configured interests — reply to "
+                     "refine; it learns your taste as you go)_\n")
+    elif cold:
         lines.append("_(cold start: still learning your taste — "
                      "ranked by trend strength for now)_\n")
     for it in items:
