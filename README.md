@@ -52,6 +52,13 @@ a single vector — the running average of what I marked relevant. New, never-se
 topics get ranked correctly if they sit near my centroid in embedding space.
 Tags can't generalize like that. (`trend_radar/preferences.py`)
 
+**Configured cold-start prior, then learned.** Before any feedback, the
+preference centroid is seeded from a plain-language interest prompt in
+`config.py` (`DEFAULT_INTEREST_PROMPT`), embedded into the same space as the
+tweets — so the *very first* digest already leans toward what I care about
+instead of ranking by raw popularity. Feedback then folds in and overrides the
+prior over a few cycles. (`trend_radar/preferences.py`, `trend_radar/pipeline.py`)
+
 **Velocity from timestamps, on a static dataset.** I don't have X API access, so
 there's no live feed to watch grow. Instead each tweet carries its own
 timestamp; I bucket the time window and measure the slope of a cluster's
@@ -144,33 +151,26 @@ docker compose --profile webhook up webhook
 
 ---
 
-## What's broken / what I'd do with more time (honest)
+## Limitations & trade-offs (honest)
 
-- **Cold start.** Mitigated: `DEFAULT_INTEREST_PROMPT` in `config.py` is a plain
-  sentence describing what I follow ("…AI agents, context engineering, AI code
-  review…"). It's embedded and seeds the preference centroid before any feedback,
-  so the *first* digest already leans my way. Feedback then folds in and overrides
-  the prior over a few cycles. Set it empty for pure trend-strength ranking.
-- **TF-IDF clusters by words, not meaning.** The offline default groups "stop
-  prompt hacking" and "context engineering" as near-but-separate clusters. The
-  `sentence-transformers` backend merges them (verified: those split into one
-  8-voice "context engineering" cluster, and AI code review goes from 4 → 12
-  voices) — `EMBEDDING_BACKEND=sentence-transformers`, or the `semantic` Docker
-  profile. The offline default just shows the weak case honestly.
+- **The offline default trades quality for zero-setup.** With no keys it uses
+  TF-IDF, which clusters by words, not meaning. The `sentence-transformers`
+  backend is the real fix (verified: "stop prompt hacking" + "context
+  engineering" merge into one 8-voice cluster, AI code review goes 4 → 12 voices)
+  via `EMBEDDING_BACKEND=sentence-transformers` or the `semantic` Docker profile.
+  TF-IDF stays the default only to keep review frictionless.
 - **False-positive trends.** A burst of similar-looking but unrelated tweets can
   cluster together and look like a trend. The "≥2 distinct authors" rule helps
   but isn't bulletproof; a real fix is engagement-source diversity scoring.
 - **False negatives on early signals.** A genuinely new trend with only 1–2 early
   tweets is below `MIN_CLUSTER_SIZE` and gets dropped. There's a real tension
   between noise suppression and catching things early.
-- **The centroid can blur** if my interests are multi-modal (e.g. infra *and*
-  ML). A single centroid averages them; clustering my *preferences* into a few
-  centroids would represent that better.
-- **WhatsApp feedback webhook** now exists (`trend_radar/webhook.py`, run with
-  `python run.py webhook` or the `webhook` compose profile): Twilio POSTs the
-  reply to `/whatsapp`, it's parsed by the same `parse_feedback` as the CLI and
-  folded in via `apply_feedback`. Still needs your Twilio creds + a public URL
-  (e.g. ngrok) pointed at it to be live.
+- **A single preference centroid blurs multi-modal taste** (e.g. infra *and*
+  ML). It averages them; clustering my preferences into a few centroids and
+  scoring a trend against its best match would represent that better.
+- **WhatsApp feedback needs your own setup to go live.** The endpoint exists
+  (`trend_radar/webhook.py`), but receiving real replies needs your Twilio creds
+  and a public URL (e.g. ngrok) pointed at `/whatsapp`.
 
 ---
 
