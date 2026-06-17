@@ -34,11 +34,12 @@ def run_digest():
     trends = detect_trends(tweets, vectors)
 
     prefs = PreferenceStore()
-    # Cold start: seed the preference centroid from configured default interests
-    # so the first digest already leans toward what I care about. Embedded with
-    # the same (now-fitted) embedder, so it shares the trend centroids' space.
-    if prefs.is_cold and config.DEFAULT_INTERESTS:
-        prior = embedder.transform(config.DEFAULT_INTERESTS).mean(axis=0)
+    # Cold start: seed the preference centroid from the configured interest
+    # prompt so the first digest already leans toward what I care about.
+    # Embedded with the same (now-fitted) embedder, so it shares the trend
+    # centroids' space.
+    if prefs.is_cold and config.DEFAULT_INTEREST_PROMPT.strip():
+        prior = embedder.transform([config.DEFAULT_INTEREST_PROMPT])[0]
         prefs.seed_prior(prior)
         prefs.save()  # persist so feedback on this digest builds on the prior
 

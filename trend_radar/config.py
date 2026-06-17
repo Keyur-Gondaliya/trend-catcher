@@ -39,21 +39,20 @@ WEIGHT_PREF = float(os.getenv("WEIGHT_PREF", "0.4"))
 TOP_N_TRENDS = int(os.getenv("TOP_N_TRENDS", "5"))
 
 # ---- Default interests (cold-start prior) ---------------------------------
-# Before you've given ANY feedback, the preference centroid is seeded from
-# these phrases, so the very first digest already leans toward what you care
-# about instead of ranking purely by trend strength. Feedback then folds into
-# this prior and gradually overrides it -- the prior is just the starting point.
+# Before you've given ANY feedback, the preference centroid is seeded from this
+# prompt, so the very first digest already leans toward what you care about
+# instead of ranking purely by trend strength. Feedback then folds into this
+# prior and gradually overrides it -- the prompt is just the starting point.
 #
-# Semicolon-separated phrases. Short topic phrases embed better than a long
-# instruction sentence. Set DEFAULT_INTERESTS="" to disable (pure cold start).
-DEFAULT_INTERESTS = [
-    s.strip() for s in os.getenv(
-        "DEFAULT_INTERESTS",
-        "AI agents; LLM applications; context engineering for LLMs; "
-        "AI code review agents; retrieval augmented generation; "
-        "prompt engineering; vector databases"
-    ).split(";") if s.strip()
-]
+# Write it as a natural sentence describing what you want to follow. It's
+# embedded with the same model as the tweets, so it lands in the same space.
+# Set DEFAULT_INTEREST_PROMPT="" to disable (pure trend-strength cold start).
+DEFAULT_INTEREST_PROMPT = os.getenv(
+    "DEFAULT_INTEREST_PROMPT",
+    "I want to keep up with AI: LLM agents, context engineering, "
+    "AI code review, retrieval augmented generation, prompt engineering, "
+    "and vector databases.",
+)
 
 # ---- Delivery -------------------------------------------------------------
 # "console" -> prints the digest (default, no creds).

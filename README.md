@@ -124,11 +124,11 @@ step (they map to the optional extras in `pyproject.toml`).
 
 ## What's broken / what I'd do with more time (honest)
 
-- **Cold start.** Mitigated: `DEFAULT_INTERESTS` in `config.py` seeds the
-  preference centroid before any feedback, so the *first* digest already leans
-  toward what I declared I care about (AI agents, LLM apps, context engineering,
-  …). Feedback then folds in and overrides the prior over a few cycles. Set it
-  empty to fall back to pure trend-strength ranking.
+- **Cold start.** Mitigated: `DEFAULT_INTEREST_PROMPT` in `config.py` is a plain
+  sentence describing what I follow ("…AI agents, context engineering, AI code
+  review…"). It's embedded and seeds the preference centroid before any feedback,
+  so the *first* digest already leans my way. Feedback then folds in and overrides
+  the prior over a few cycles. Set it empty for pure trend-strength ranking.
 - **TF-IDF clusters by words, not meaning.** The offline default groups "stop
   prompt hacking" and "context engineering" as near-but-separate clusters that a
   real embedding model would merge. Switching `EMBEDDING_BACKEND` fixes this;
