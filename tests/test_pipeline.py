@@ -10,7 +10,6 @@ from trend_radar.embeddings import get_embedder
 from trend_radar.trends import detect_trends
 from trend_radar.preferences import PreferenceStore
 from trend_radar.digest import build_digest
-from trend_radar.ingest import Tweet
 from trend_radar.sample_data import main as generate_sample
 
 
@@ -34,7 +33,7 @@ def test_detect_trends_finds_clusters(tmp_path):
         assert 0.0 <= t.strength <= 1.0
 
 
-def test_feedback_moves_ranking(tmp_path, monkeypatch):
+def test_feedback_moves_ranking(tmp_path):
     tweets = _load_sample(tmp_path)
     vectors = get_embedder().fit_transform([t.text for t in tweets])
     trends = detect_trends(tweets, vectors)
@@ -85,3 +84,29 @@ def test_default_interest_prior_personalizes_cold_start(tmp_path):
     prefs.update(np.asarray(prior, dtype=np.float32), relevant=True)
     assert not prefs.prior
     assert not prefs.is_cold
+
+
+def test_whatsapp_webhook_parses_and_applies(monkeypatch):
+    """The inbound webhook must route a WhatsApp reply through the same
+    feedback path as the CLI. Skips if the whatsapp extra (Flask) isn't here."""
+    import pytest
+    pytest.importorskip("flask")
+
+    import trend_radar.webhook as webhook
+
+    applied = {}
+    monkeypatch.setattr(webhook, "apply_feedback", lambda fb: applied.update(fb))
+
+    client = webhook._build_app().test_client()
+
+    # A well-formed reply is parsed and applied.
+    resp = client.post("/whatsapp", data={"Body": "2 yes, 4 no"})
+    assert resp.status_code == 200
+    assert applied == {2: True, 4: False}
+    assert b"folded 2 signal" in resp.data.lower()
+
+    # Gibberish is rejected without touching the preference store.
+    applied.clear()
+    resp = client.post("/whatsapp", data={"Body": "hi there"})
+    assert applied == {}
+    assert b"didn't catch" in resp.data.lower()

@@ -116,9 +116,18 @@ automatically by compose). For the cron job, point it at the container:
 ```
 0 9 * * 3,0  cd /path/to/trend-radar && docker compose run --rm trend-radar digest
 ```
-Note: the image ships the offline core deps only. For `sentence-transformers`,
-`anthropic`/`openai`, or `twilio` backends, add them to the Dockerfile's install
-step (they map to the optional extras in `pyproject.toml`).
+
+The default image is the lean offline build (tfidf + template). Heavier
+backends ship as compose **profiles** that build with the matching optional
+extras from `pyproject.toml`:
+
+```bash
+# Semantic embeddings (sentence-transformers) — model cached in a named volume
+docker compose --profile semantic run --rm trend-radar-semantic digest
+
+# WhatsApp inbound-feedback webhook (long-running, listens on :5000)
+docker compose --profile webhook up webhook
+```
 
 ---
 
@@ -130,9 +139,11 @@ step (they map to the optional extras in `pyproject.toml`).
   so the *first* digest already leans my way. Feedback then folds in and overrides
   the prior over a few cycles. Set it empty for pure trend-strength ranking.
 - **TF-IDF clusters by words, not meaning.** The offline default groups "stop
-  prompt hacking" and "context engineering" as near-but-separate clusters that a
-  real embedding model would merge. Switching `EMBEDDING_BACKEND` fixes this;
-  the demo just shows the weak case honestly.
+  prompt hacking" and "context engineering" as near-but-separate clusters. The
+  `sentence-transformers` backend merges them (verified: those split into one
+  8-voice "context engineering" cluster, and AI code review goes from 4 → 12
+  voices) — `EMBEDDING_BACKEND=sentence-transformers`, or the `semantic` Docker
+  profile. The offline default just shows the weak case honestly.
 - **False-positive trends.** A burst of similar-looking but unrelated tweets can
   cluster together and look like a trend. The "≥2 distinct authors" rule helps
   but isn't bulletproof; a real fix is engagement-source diversity scoring.
@@ -142,8 +153,11 @@ step (they map to the optional extras in `pyproject.toml`).
 - **The centroid can blur** if my interests are multi-modal (e.g. infra *and*
   ML). A single centroid averages them; clustering my *preferences* into a few
   centroids would represent that better.
-- **WhatsApp feedback webhook** is stubbed as a CLI command here; production needs
-  the Twilio inbound webhook wired to `apply_feedback`.
+- **WhatsApp feedback webhook** now exists (`trend_radar/webhook.py`, run with
+  `python run.py webhook` or the `webhook` compose profile): Twilio POSTs the
+  reply to `/whatsapp`, it's parsed by the same `parse_feedback` as the CLI and
+  folded in via `apply_feedback`. Still needs your Twilio creds + a public URL
+  (e.g. ngrok) pointed at it to be live.
 
 ---
 
@@ -163,8 +177,17 @@ trend_radar/                 the package
 ├── digest.py                ranking + per-item digest + pluggable summaries
 ├── notify.py                console / WhatsApp delivery
 ├── pipeline.py              wires the diagram together; closes the feedback loop
+├── webhook.py               Twilio inbound-feedback webhook (closes the loop live)
 └── sample_data.py           synthetic X dump (real-schema stand-in)
 data/                        generated artifacts (tweets.csv, preferences.json) — gitignored
 docs/architecture.md         the system diagram
-tests/test_pipeline.py       offline smoke + feedback-loop tests
+tests/test_pipeline.py       offline smoke + feedback-loop + webhook tests
+Dockerfile / docker-compose.yml   lean default + semantic / webhook profiles
+.github/workflows/ci.yml     runs the tests on push (py 3.9 + 3.12)
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

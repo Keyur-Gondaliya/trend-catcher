@@ -5,9 +5,11 @@ Trend Radar CLI.
   python run.py digest               # run a digest (Wed/Sun job)
   python run.py feedback "1 yes, 3 no, 4 yes"   # tune preferences
   python run.py reset                # wipe learned preferences
+  python run.py webhook              # serve the Twilio inbound-feedback webhook
 
 The scheduler (cron, twice weekly) just calls `python run.py digest`. The
-feedback command stands in for the WhatsApp reply webhook in this prototype.
+feedback command stands in for the WhatsApp reply webhook locally; `webhook`
+runs the real Twilio endpoint that does the same thing from an inbound message.
 """
 import sys
 import re
@@ -43,6 +45,9 @@ def main():
             if os.path.exists(p):
                 os.remove(p)
         print("Preferences reset.")
+    elif cmd == "webhook":
+        from trend_radar.webhook import serve
+        serve()
     else:
         print(__doc__)
 

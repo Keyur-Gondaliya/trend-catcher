@@ -11,13 +11,20 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# Optional dependency groups from pyproject (e.g. "embeddings", "whatsapp").
+# Leave empty for the lean offline image. Compose sets this per profile.
+ARG EXTRAS=""
+
 # Install core deps first so this layer caches across code changes.
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# App code.
-COPY pyproject.toml run.py ./
+# App code (README is needed because pyproject references it for extras install).
+COPY README.md pyproject.toml run.py ./
 COPY trend_radar/ ./trend_radar/
+
+# Pull in optional extras when requested (sentence-transformers, twilio+flask, …).
+RUN if [ -n "$EXTRAS" ]; then pip install ".[$EXTRAS]"; fi
 
 # Data dir is mounted as a volume in compose; create it for standalone runs too.
 RUN mkdir -p data

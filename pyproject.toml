@@ -19,8 +19,8 @@ dependencies = [
 embeddings = ["sentence-transformers>=2.2"]
 # LLM digest summaries (SUMMARIZER_BACKEND=anthropic / openai)
 llm = ["anthropic>=0.40", "openai>=1.0"]
-# WhatsApp delivery (DELIVERY_BACKEND=whatsapp)
-whatsapp = ["twilio>=9.0"]
+# WhatsApp delivery (DELIVERY_BACKEND=whatsapp) + inbound feedback webhook
+whatsapp = ["twilio>=9.0", "flask>=3.0", "gunicorn>=21.0"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]

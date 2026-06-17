@@ -1,4 +1,5 @@
 services:
+  # ---- Default: lean, offline (tfidf + template) -------------------------
   trend-radar:
     build: .
     image: trend-radar:latest
@@ -17,3 +18,49 @@ services:
     #   docker compose run --rm trend-radar seed
     #   docker compose run --rm trend-radar feedback "2 yes, 1 no"
     command: ["digest"]
+
+  # ---- Semantic embeddings (sentence-transformers) -----------------------
+  # Enable with:  docker compose --profile semantic run --rm trend-radar-semantic digest
+  trend-radar-semantic:
+    profiles: ["semantic"]
+    build:
+      context: .
+      args:
+        EXTRAS: embeddings
+    image: trend-radar:semantic
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      EMBEDDING_BACKEND: sentence-transformers
+      SUMMARIZER_BACKEND: ${SUMMARIZER_BACKEND:-template}
+      DELIVERY_BACKEND: ${DELIVERY_BACKEND:-console}
+      # tfidf's 0.45 is too tight for dense embeddings; loosen the threshold.
+      CLUSTER_DISTANCE_THRESHOLD: ${CLUSTER_DISTANCE_THRESHOLD:-0.55}
+    volumes:
+      - ./data:/app/data
+      - hf-cache:/root/.cache/huggingface  # cache the model across runs
+    command: ["digest"]
+
+  # ---- WhatsApp inbound-feedback webhook (long-running) ------------------
+  # Enable with:  docker compose --profile webhook up webhook
+  webhook:
+    profiles: ["webhook"]
+    build:
+      context: .
+      args:
+        EXTRAS: whatsapp
+    image: trend-radar:whatsapp
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DELIVERY_BACKEND: whatsapp
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "5000:5000"
+    command: ["webhook"]
+
+volumes:
+  hf-cache:
