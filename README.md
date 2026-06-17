@@ -127,6 +127,40 @@ The twice-weekly schedule (Wed + Sun) is just cron calling `python run.py digest
 
 ---
 
+## What it looks like
+
+First run — a **cold start that's already seeded by the interest prompt** (note
+the spread in `fit`, not a flat 0.5):
+
+```
+📡 Trend Radar — your twice-weekly tech digest
+   (starting from your configured interests — reply to refine)
+
+1. Stop Prompt          · 3 voices    trend 0.942 · fit 0.616 · score 0.812
+2. Harness Engineering  · 5 voices    trend 0.972 · fit 0.537 · score 0.798
+3. Engineering Context  · 3 voices    trend 0.752 · fit 0.752 · score 0.752
+4. Shipping Code        · 4 voices    trend 0.721 · fit 0.654 · score 0.694
+5. Rebuilt Harness      · 4 voices    trend 0.559 · fit 0.527 · score 0.546
+```
+
+Reply `1 yes, 3 yes, 2 no`, run again — **same data, the ranking moves toward
+your taste**:
+
+```
+1. Stop Prompt          · 3 voices    trend 0.942 · fit 1.00 · score 0.965    ▲ liked → fit maxes out
+2. Engineering Context  · 3 voices    trend 0.752 · fit 0.858 · score 0.794    ▲ #3 → #2
+3. Harness Engineering  · 5 voices    trend 0.972 · fit 0.525 · score 0.793    ▼ #2 → #3 (marked "no")
+4. Shipping Code        · 4 voices    trend 0.721 · fit 0.621 · score 0.681
+5. Rebuilt Harness      · 4 voices    trend 0.559 · fit 0.518 · score 0.543
+```
+
+`trend` is strength (engagement × velocity), `fit` is personal relevance
+(best match across your interest modes), and `score` blends them 0.6 / 0.4.
+Each item also carries a one-line summary (elided above). Reproduce it any time
+with `./scripts/demo.sh`.
+
+---
+
 ## Run it with Docker
 
 The app is a scheduled task runner, so the container's entrypoint is `python
