@@ -38,7 +38,9 @@
     "importorskip",
     "gunicorn",
     "twiml",
-    "TwiML"
+    "TwiML",
+    "creds",
+    "ngrok"
   ],
   "ignorePaths": [
     "data/**",

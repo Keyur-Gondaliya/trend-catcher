@@ -1,5 +1,7 @@
 # Trend Radar
 
+[![CI](https://github.com/Keyur-Gondaliya/trend-catcher/actions/workflows/ci.yml/badge.svg)](https://github.com/Keyur-Gondaliya/trend-catcher/actions/workflows/ci.yml)
+
 A personal tech-trend radar. It reads a stream of tech tweets, finds the topics
 that are actually *gaining traction* (not just loud), filters them against what
 **I** care about, and sends me a twice-weekly digest on WhatsApp. I reply with a
@@ -72,22 +74,33 @@ runs with zero keys for review and upgrades by flipping an env var.
 ```bash
 pip install -r requirements.txt
 python run.py seed       # generate a sample X dataset
-python run.py digest     # first run: cold start, ranked by trend strength
+python run.py digest     # first run: seeded by your interest prompt (see config)
 python run.py feedback "2 yes, 3 yes, 1 no, 5 no"
 python run.py digest     # now personalized — watch the ranking move
 ```
 
-Upgrade quality when you have keys:
+Run the tests (installs the package + pytest):
 
 ```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Upgrade quality with the optional backends (each maps to an extra in
+`pyproject.toml`):
+
+```bash
+pip install ".[embeddings]"   # better semantics — sentence-transformers
 EMBEDDING_BACKEND=sentence-transformers SUMMARIZER_BACKEND=anthropic python run.py digest
 ```
 
-Send to real WhatsApp (Twilio):
+Send to real WhatsApp (Twilio) and receive feedback replies:
 
 ```bash
+pip install ".[whatsapp]"     # twilio + flask + gunicorn
 DELIVERY_BACKEND=whatsapp TWILIO_SID=... TWILIO_TOKEN=... \
 TWILIO_WHATSAPP_FROM=+14155238886 MY_WHATSAPP_NUMBER=+91... python run.py digest
+python run.py webhook         # serve the inbound-feedback endpoint on :5000
 ```
 
 The twice-weekly schedule (Wed + Sun) is just cron calling `python run.py digest`:
@@ -164,7 +177,7 @@ docker compose --profile webhook up webhook
 ## Layout
 
 ```
-run.py                       CLI: seed / digest / feedback / reset
+run.py                       CLI: seed / digest / feedback / reset / webhook
 pyproject.toml               packaging + pinned/optional dependencies
 requirements.txt             core deps (no API keys needed)
 trend_radar/                 the package
