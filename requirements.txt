@@ -1,0 +1,14 @@
+# Core (required) -- everything runs with just these, no API keys.
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.3
+
+# Optional: better semantic embeddings (EMBEDDING_BACKEND=sentence-transformers)
+# sentence-transformers>=2.2
+
+# Optional: LLM digest summaries (SUMMARIZER_BACKEND=anthropic / openai)
+# anthropic>=0.40
+# openai>=1.0
+
+# Optional: WhatsApp delivery (DELIVERY_BACKEND=whatsapp)
+# twilio>=9.0

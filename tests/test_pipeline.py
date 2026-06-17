@@ -1,0 +1,60 @@
+"""Smoke + behaviour tests for the trend pipeline.
+
+These run fully offline (tfidf embeddings, template summaries, no API keys) and
+exercise the two things that matter most: that real trends surface, and that
+feedback actually moves the ranking.
+"""
+import numpy as np
+
+from trend_radar.embeddings import get_embedder
+from trend_radar.trends import detect_trends
+from trend_radar.preferences import PreferenceStore
+from trend_radar.digest import build_digest
+from trend_radar.ingest import Tweet
+from trend_radar.sample_data import main as generate_sample
+
+
+def _load_sample(tmp_path):
+    csv_path = tmp_path / "tweets.csv"
+    generate_sample(path=str(csv_path))
+    from trend_radar.ingest import load_tweets
+    return load_tweets(str(csv_path))
+
+
+def test_detect_trends_finds_clusters(tmp_path):
+    tweets = _load_sample(tmp_path)
+    vectors = get_embedder().fit_transform([t.text for t in tweets])
+    trends = detect_trends(tweets, vectors)
+
+    assert trends, "expected at least one trend from the sample data"
+    for t in trends:
+        # every trend honours the >=3 tweets / >=2 distinct voices rule
+        assert len(t.tweet_ids) >= 3
+        assert len(t.authors) >= 2
+        assert 0.0 <= t.strength <= 1.0
+
+
+def test_feedback_moves_ranking(tmp_path, monkeypatch):
+    tweets = _load_sample(tmp_path)
+    vectors = get_embedder().fit_transform([t.text for t in tweets])
+    trends = detect_trends(tweets, vectors)
+
+    # Isolate preference state to a temp file.
+    pref_path = tmp_path / "preferences.json"
+    prefs = PreferenceStore(path=str(pref_path))
+    assert prefs.is_cold
+
+    # Cold-start ranking: relevance is neutral for everyone.
+    cold = build_digest(trends, prefs)
+    assert all(it.relevance == 0.5 for it in cold)
+
+    # Mark the lowest-ranked cold item as the one we love, then re-rank.
+    target = cold[-1]
+    target_centroid = next(t.centroid for t in trends if t.cluster_id == target.cluster_id)
+    prefs.update(np.asarray(target_centroid, dtype=np.float32), relevant=True)
+
+    warm = build_digest(trends, prefs)
+    moved = next(it for it in warm if it.cluster_id == target.cluster_id)
+    assert moved.relevance > 0.5
+    # The thing we upvoted should now outrank where it started.
+    assert warm[0].cluster_id == target.cluster_id or moved.score > target.score

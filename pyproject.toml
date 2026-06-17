@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trend-radar"
+version = "0.1.0"
+description = "A personal tech-trend radar: cluster + velocity trend detection with a learned preference centroid and a twice-weekly digest."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+]
+
+[project.optional-dependencies]
+# Better semantic embeddings (EMBEDDING_BACKEND=sentence-transformers)
+embeddings = ["sentence-transformers>=2.2"]
+# LLM digest summaries (SUMMARIZER_BACKEND=anthropic / openai)
+llm = ["anthropic>=0.40", "openai>=1.0"]
+# WhatsApp delivery (DELIVERY_BACKEND=whatsapp)
+whatsapp = ["twilio>=9.0"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+trend-radar = "run:main"
+
+[tool.setuptools]
+packages = ["trend_radar"]
+py-modules = ["run"]
