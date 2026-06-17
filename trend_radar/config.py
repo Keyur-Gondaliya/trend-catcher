@@ -54,6 +54,15 @@ DEFAULT_INTEREST_PROMPT = os.getenv(
     "and vector databases.",
 )
 
+# ---- Multi-centroid preferences -------------------------------------------
+# Taste is rarely one thing. Instead of averaging everything into a single
+# vector (which blurs e.g. infra AND ML), keep up to N centroids -- one per
+# interest "mode" -- and score a trend against its best-matching mode.
+MAX_PREFERENCE_CENTROIDS = int(os.getenv("MAX_PREFERENCE_CENTROIDS", "4"))
+# A relevant signal merges into the nearest mode when cosine >= this; otherwise
+# it starts a new mode (until the cap). Higher = more, tighter modes.
+PREFERENCE_MERGE_THRESHOLD = float(os.getenv("PREFERENCE_MERGE_THRESHOLD", "0.5"))
+
 # ---- Delivery -------------------------------------------------------------
 # "console" -> prints the digest (default, no creds).
 # "whatsapp" -> sends via Twilio, needs TWILIO_* env vars + a number.

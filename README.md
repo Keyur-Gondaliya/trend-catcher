@@ -47,10 +47,13 @@ acceleration rule is what separates *emerging* from *already-big-and-flat*.
 
 ## Key design decisions (the things to ask me about)
 
-**Embedding centroid for preferences, not topic tags.** The preference store is
-a single vector — the running average of what I marked relevant. New, never-seen
-topics get ranked correctly if they sit near my centroid in embedding space.
-Tags can't generalize like that. (`trend_radar/preferences.py`)
+**Embedding centroids for preferences, not topic tags.** The preference store is
+a small set of vectors — interest *modes* learned from what I mark relevant via
+online clustering. A trend is scored against its *best-matching* mode, so caring
+about both infra *and* ML doesn't average into a mush that matches neither.
+New, never-seen topics still rank correctly if they sit near any mode in
+embedding space; tags can't generalize like that.
+(`trend_radar/preferences.py`)
 
 **Configured cold-start prior, then learned.** Before any feedback, the
 preference centroid is seeded from a plain-language interest prompt in
@@ -165,9 +168,6 @@ docker compose --profile webhook up webhook
 - **False negatives on early signals.** A genuinely new trend with only 1–2 early
   tweets is below `MIN_CLUSTER_SIZE` and gets dropped. There's a real tension
   between noise suppression and catching things early.
-- **A single preference centroid blurs multi-modal taste** (e.g. infra *and*
-  ML). It averages them; clustering my preferences into a few centroids and
-  scoring a trend against its best match would represent that better.
 - **WhatsApp feedback needs your own setup to go live.** The endpoint exists
   (`trend_radar/webhook.py`), but receiving real replies needs your Twilio creds
   and a public URL (e.g. ngrok) pointed at `/whatsapp`.
@@ -194,7 +194,7 @@ trend_radar/                 the package
 └── sample_data.py           synthetic X dump (real-schema stand-in)
 data/                        generated artifacts (tweets.csv, preferences.json) — gitignored
 docs/architecture.md         the system diagram
-tests/test_pipeline.py       offline smoke + feedback-loop + webhook tests
+tests/test_pipeline.py       offline smoke + feedback-loop + multi-centroid + webhook tests
 Dockerfile / docker-compose.yml   lean default + semantic / webhook profiles
 .github/workflows/ci.yml     runs the tests on push (py 3.9 + 3.12)
 ```

@@ -86,6 +86,37 @@ def test_default_interest_prior_personalizes_cold_start(tmp_path):
     assert not prefs.is_cold
 
 
+def test_multi_centroid_keeps_distinct_interests(tmp_path):
+    """Two dissimilar interests must stay as separate modes, not blur into one
+    averaged vector -- and each must still score high against its own mode."""
+    tweets = _load_sample(tmp_path)
+    embedder = get_embedder()
+    embedder.fit_transform([t.text for t in tweets])  # fit the vocab (tfidf)
+
+    prefs = PreferenceStore(path=str(tmp_path / "preferences.json"))
+    rust = embedder.transform(["Rust for backend services"])[0]
+    ai = embedder.transform(["AI code review agents"])[0]
+
+    prefs.update(rust, relevant=True)
+    prefs.update(ai, relevant=True)
+
+    # Disjoint vocab -> two modes, not one blurred average.
+    assert len(prefs.centroids) == 2
+    # Best-match scoring keeps BOTH interests strong simultaneously.
+    assert prefs.relevance(rust) > 0.8
+    assert prefs.relevance(ai) > 0.8
+
+    # A near-duplicate of an existing interest merges instead of opening a mode.
+    prefs.update(embedder.transform(["AI code review agent for PRs"])[0], relevant=True)
+    assert len(prefs.centroids) == 2
+
+    # Survives a save/reload round-trip (new list-based format).
+    prefs.save()
+    reloaded = PreferenceStore(path=str(tmp_path / "preferences.json"))
+    assert len(reloaded.centroids) == 2
+    assert reloaded.relevance(ai) > 0.8
+
+
 def test_whatsapp_webhook_parses_and_applies(monkeypatch):
     """The inbound webhook must route a WhatsApp reply through the same
     feedback path as the CLI. Skips if the whatsapp extra (Flask) isn't here."""
