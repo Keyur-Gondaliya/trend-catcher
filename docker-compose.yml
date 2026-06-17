@@ -1,0 +1,19 @@
+services:
+  trend-radar:
+    build: .
+    image: trend-radar:latest
+    # Backend selection + secrets. Copy .env.example to .env to override.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-tfidf}
+      SUMMARIZER_BACKEND: ${SUMMARIZER_BACKEND:-template}
+      DELIVERY_BACKEND: ${DELIVERY_BACKEND:-console}
+    # Persist the dataset + learned preferences across runs.
+    volumes:
+      - ./data:/app/data
+    # Default run is a digest; override per invocation, e.g.
+    #   docker compose run --rm trend-radar seed
+    #   docker compose run --rm trend-radar feedback "2 yes, 1 no"
+    command: ["digest"]

@@ -1,0 +1,22 @@
+# Keep the build context small and reproducible.
+.git
+.gitignore
+.dockerignore
+.claude
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+
+# Generated runtime artifacts — provided via the mounted volume, not the image.
+data/*.csv
+data/*.json
+
+# Local secrets / OS noise
+.env
+.DS_Store
+docs
+tests

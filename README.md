@@ -97,6 +97,31 @@ The twice-weekly schedule (Wed + Sun) is just cron calling `python run.py digest
 
 ---
 
+## Run it with Docker
+
+The app is a scheduled task runner, so the container's entrypoint is `python
+run.py` and you pass the subcommand. `./data` is mounted as a volume, so the
+dataset and learned preferences persist across runs.
+
+```bash
+docker compose build
+docker compose run --rm trend-radar seed                       # generate dataset
+docker compose run --rm trend-radar digest                     # cold start
+docker compose run --rm trend-radar feedback "2 yes, 3 no"     # tune
+docker compose run --rm trend-radar digest                     # personalized
+```
+
+Switch backends / add secrets by copying `.env.example` to `.env` (read
+automatically by compose). For the cron job, point it at the container:
+```
+0 9 * * 3,0  cd /path/to/trend-radar && docker compose run --rm trend-radar digest
+```
+Note: the image ships the offline core deps only. For `sentence-transformers`,
+`anthropic`/`openai`, or `twilio` backends, add them to the Dockerfile's install
+step (they map to the optional extras in `pyproject.toml`).
+
+---
+
 ## What's broken / what I'd do with more time (honest)
 
 - **Cold start.** With no feedback, personalization can't work — the first one or
