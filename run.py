@@ -29,7 +29,8 @@ def main():
 
     if cmd == "seed":
         from trend_radar.sample_data import main as gen
-        gen()
+        from trend_radar import config
+        gen(config.DATA_PATH)
     elif cmd == "digest":
         run_digest()
     elif cmd == "feedback":

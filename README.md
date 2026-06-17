@@ -89,6 +89,13 @@ python run.py feedback "2 yes, 3 yes, 1 no, 5 no"
 python run.py digest     # now personalized — watch the ranking move
 ```
 
+Or run the whole story in one command:
+
+```bash
+./scripts/demo.sh            # seed → cold digest → feedback → personalized re-rank
+PAUSE=1 ./scripts/demo.sh    # pause before each step (handy when recording a demo)
+```
+
 Run the tests (installs the package + pytest):
 
 ```bash
@@ -192,6 +199,7 @@ trend_radar/                 the package
 ├── pipeline.py              wires the diagram together; closes the feedback loop
 ├── webhook.py               Twilio inbound-feedback webhook (closes the loop live)
 └── sample_data.py           synthetic X dump (real-schema stand-in)
+scripts/demo.sh              one-command end-to-end walkthrough (offline)
 data/                        generated artifacts (tweets.csv, preferences.json) — gitignored
 docs/architecture.md         the system diagram
 tests/test_pipeline.py       offline smoke + feedback-loop + multi-centroid + webhook tests
